@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cavisson Football League</title>
+
+<style>
+/* ===== GLOBAL ===== */
+body {
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background:
+    linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.85)),
+    url("stadium.png");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  color: #fff;
+}
+
+.container {
+  max-width: 1500px;
+  margin: auto;
+  padding: 40px 30px;
+}
+
+h1 {
+  text-align: center;
+  font-size: 46px;
+  margin-bottom: 40px;
+}
+
+/* ===== LAYOUT ===== */
+.main-layout {
+  display: grid;
+  grid-template-columns: 2.6fr 1fr;
+  gap: 30px;
+}
+
+/* ===== CARDS ===== */
+.card {
+  backdrop-filter: blur(18px);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+  padding: 26px;
+}
+
+.card.standings { background: rgba(12,22,38,0.75); }
+.card.matches   { background: rgba(15,23,42,0.45); }
+
+.card.knockout {
+  margin-top: 40px;
+  background: rgba(10,18,32,0.85);
+}
+
+/* ===== TITLES ===== */
+.section-title {
+  text-align: center;
+  font-size: 22px;
+  margin-bottom: 18px;
+}
+
+/* ===== TABLE ===== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background: rgba(2,6,23,0.95);
+  padding: 14px;
+  font-size: 14px;
+}
+
+td {
+  padding: 14px;
+  font-size: 16px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+
+.standings-table td:first-child { text-align: left; }
+
+.name-cell {
+  display: grid;
+  grid-template-columns: 30px auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.flag { font-size: 20px; }
+
+/* ===== FORM ===== */
+.form {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.form span {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.win  { background: #22c55e; }
+.draw{ background: #9ca3af; }
+.loss{ background: #ef4444; }
+
+/* ===== INPUTS ===== */
+input {
+  width: 38px;
+  padding: 5px;
+  background: rgba(2,6,23,0.95);
+  color: #fff;
+  border-radius: 6px;
+  border: none;
+  text-align: center;
+}
+
+/* ===== MATCHES ===== */
+.round { margin-bottom: 24px; }
+
+.round-title {
+  font-weight: 600;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+
+.match-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.team-left  { text-align: right; }
+.team-right { text-align: left; }
+
+.score-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ===== KNOCKOUT ===== */
+.knockout-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.kcard {
+  background: rgba(15,23,42,0.6);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+}
+
+.final {
+  border: 2px solid gold;
+}
+
+.penalties {
+  margin-top: 10px;
+  display: none;
+  gap: 6px;
+  justify-content: center;
+}
+
+/* ===== CHAMPION ===== */
+#winner {
+  margin-top: 30px;
+  text-align: center;
+  font-size: 40px;
+  font-weight: bold;
+  color: gold;
+}
+
+/* ===== FIREWORKS ===== */
+canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="fireworks"></canvas>
+
+<div class="container">
+<h1>Cavisson Football League</h1>
+
+<!-- ===== LEAGUE (UNCHANGED) ===== -->
+<div class="main-layout">
+
+  <div class="card standings">
+    <div class="section-title">Standings</div>
+    <table id="standings" class="standings-table"></table>
+  </div>
+
+  <div class="card matches">
+    <div class="section-title">League Matches</div>
+    <div id="matches"></div>
+  </div>
+
+</div>
+
+<!-- ===== KNOCKOUT ===== -->
+<div class="card knockout" id="knockout" style="display:none;">
+  <div class="section-title">🏆 Knockout Stage</div>
+
+  <div class="knockout-grid">
+    <div class="kcard" id="sf1"></div>
+    <div class="kcard final" id="final"></div>
+    <div class="kcard" id="sf2"></div>
+  </div>
+
+  <div id="winner"></div>
+</div>
+
+</div>
+
+<script>
+/* ===========================
+   LEAGUE CODE (UNCHANGED)
+=========================== */
+const players = ["Joker","MrA","Rajesh","Deadman","Maytas"];
+const flags = {
+  Joker:"🇫🇷", MrA:"🇦🇷", Rajesh:"🇪🇸", Deadman:"🇵🇹", Maytas:"🇫🇷"
+};
+
+const rounds = [
+  { name:"Round 1", games:[["Deadman","Maytas"],["MrA","Joker"]] },
+  { name:"Round 2", games:[["Rajesh","MrA"],["Joker","Deadman"]] },
+  { name:"Round 3", games:[["Joker","Maytas"],["Rajesh","Deadman"]] },
+  { name:"Round 4", games:[["Deadman","MrA"],["Maytas","Rajesh"]] },
+  { name:"Round 5", games:[["Rajesh","Joker"],["MrA","Maytas"]] }
+];
+
+const stats = {};
+players.forEach(p=>stats[p]={mp:0,w:0,d:0,l:0,gf:0,ga:0,pts:0});
+
+const STORAGE_KEY="scores";
+const matchContainer=document.getElementById("matches");
+
+/* render league matches */
+rounds.forEach((r,ri)=>{
+  const div=document.createElement("div");
+  div.className="round";
+  div.innerHTML=`<div class="round-title">${r.name}</div>`;
+  r.games.forEach((g,gi)=>{
+    div.innerHTML+=`
+      <div class="match-row">
+        <div class="team-left">${g[0]}</div>
+        <div class="score-box">
+          <input data-r="${ri}" data-g="${gi}" data-t="a"> -
+          <input data-r="${ri}" data-g="${gi}" data-t="b">
+        </div>
+        <div class="team-right">${g[1]}</div>
+      </div>`;
+  });
+  matchContainer.appendChild(div);
+});
+
+const inputs=document.querySelectorAll("input");
+const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}");
+inputs.forEach(i=>{
+  const k=i.dataset.r+i.dataset.g+i.dataset.t;
+  if(saved[k]!=null) i.value=saved[k];
+  i.oninput=saveAndUpdate;
+});
+
+updateLeague();
+
+function saveAndUpdate(){
+  const d={};
+  inputs.forEach(i=>{
+    if(i.value!=="") d[i.dataset.r+i.dataset.g+i.dataset.t]=i.value;
+  });
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(d));
+  updateLeague();
+}
+
+function updateLeague(){
+  players.forEach(p=>stats[p]={mp:0,w:0,d:0,l:0,gf:0,ga:0,pts:0});
+  const form={}; players.forEach(p=>form[p]=[]);
+  let played=0,total=rounds.flatMap(r=>r.games).length;
+
+  rounds.forEach((r,ri)=>{
+    r.games.forEach((g,gi)=>{
+      const a=document.querySelector(`[data-r="${ri}"][data-g="${gi}"][data-t="a"]`).value;
+      const b=document.querySelector(`[data-r="${ri}"][data-g="${gi}"][data-t="b"]`).value;
+      if(a===""||b==="") return;
+      played++;
+
+      const sa=+a,sb=+b,A=g[0],B=g[1];
+      stats[A].mp++; stats[B].mp++;
+      stats[A].gf+=sa; stats[A].ga+=sb;
+      stats[B].gf+=sb; stats[B].ga+=sa;
+
+      if(sa>sb){ stats[A].w++; stats[A].pts+=3; stats[B].l++; form[A].push("W"); form[B].push("L"); }
+      else if(sb>sa){ stats[B].w++; stats[B].pts+=3; stats[A].l++; form[B].push("W"); form[A].push("L"); }
+      else { stats[A].d++; stats[B].d++; stats[A].pts++; stats[B].pts++; form[A].push("D"); form[B].push("D"); }
+    });
+  });
+
+  const sorted=[...players].sort((x,y)=>
+    stats[y].pts-stats[x].pts || (stats[y].gf-stats[y].ga)-(stats[x].gf-stats[x].ga)
+  );
+
+  renderStandings(sorted,form);
+
+  if(played===total) renderKnockout(sorted);
+}
+
+function renderStandings(sorted,form){
+  const t=document.getElementById("standings");
+  t.innerHTML=`
+    <tr>
+      <th>Club</th><th>MP</th><th>W</th><th>D</th><th>L</th>
+      <th>GF</th><th>GA</th><th>GD</th><th>Pts</th><th>Last 4</th>
+    </tr>`;
+  sorted.forEach((p,i)=>{
+    const f=form[p].slice(-4).map(r=>r==="W"?`<span class="win">✓</span>`:r==="D"?`<span class="draw">–</span>`:`<span class="loss">✕</span>`).join("");
+    t.innerHTML+=`
+    <tr>
+      <td><div class="name-cell"><span class="flag">${flags[p]}</span>${p}</div></td>
+      <td>${stats[p].mp}</td><td>${stats[p].w}</td><td>${stats[p].d}</td><td>${stats[p].l}</td>
+      <td>${stats[p].gf}</td><td>${stats[p].ga}</td><td>${stats[p].gf-stats[p].ga}</td>
+      <td>${stats[p].pts}</td><td><div class="form">${f}</div></td>
+    </tr>`;
+  });
+}
+
+/* ===========================
+   KNOCKOUT (NEW, CORRECT)
+=========================== */
+function renderKnockout(sorted){
+  document.getElementById("knockout").style.display="block";
+
+  const [p1,p2,p3,p4]=sorted.slice(0,4);
+
+  renderMatch("sf1","Semi Final",p1,p4,w1=>{
+    renderMatch("sf2","Semi Final",p2,p3,w2=>{
+      renderFinal(w1,w2);
+    });
+  });
+}
+
+function renderMatch(id,title,a,b,cb){
+  const el=document.getElementById(id);
+  el.innerHTML=`
+    <h3>${title}</h3>
+    <div class="match-row">
+      <div class="team-left">${a}</div>
+      <div class="score-box">
+        <input class="s1"> -
+        <input class="s2">
+      </div>
+      <div class="team-right">${b}</div>
+    </div>
+    <div class="penalties">
+      Pen <input class="p1"> - <input class="p2">
+    </div>`;
+
+  const [s1,s2]=el.querySelectorAll(".s1,.s2");
+  const pen=el.querySelector(".penalties");
+  const [p1,p2]=el.querySelectorAll(".p1,.p2");
+
+  function decide(){
+    if(s1.value===""||s2.value==="") return;
+    if(+s1.value!==+s2.value){
+      cb(+s1.value>+s2.value?a:b);
+    } else {
+      pen.style.display="flex";
+      if(p1.value!==""&&p2.value!==""&&+p1.value!==+p2.value){
+        cb(+p1.value>+p2.value?a:b);
+      }
+    }
+  }
+
+  [s1,s2,p1,p2].forEach(i=>i.oninput=decide);
+}
+
+function renderFinal(a,b){
+  renderMatch("final","Final",a,b,winner=>{
+    document.getElementById("winner").innerHTML=`🏆 ${winner} IS THE 1ST CHAMPION OF CFL`;
+    startFireworks();
+  });
+}
+
+/* ===== FIREWORKS ===== */
+const canvas=document.getElementById("fireworks");
+const ctx=canvas.getContext("2d");
+canvas.width=innerWidth; canvas.height=innerHeight;
+
+function startFireworks(){
+  let p=[];
+  setInterval(()=>{
+    for(let i=0;i<120;i++){
+      p.push({
+        x:Math.random()*canvas.width,
+        y:Math.random()*canvas.height/2,
+        vx:(Math.random()-0.5)*7,
+        vy:(Math.random()-0.5)*7,
+        l:60
+      });
+    }
+  },500);
+
+  (function anim(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    p.forEach(o=>{
+      o.x+=o.vx; o.y+=o.vy; o.l--;
+      ctx.fillStyle="gold";
+      ctx.fillRect(o.x,o.y,3,3);
+    });
+    p=p.filter(o=>o.l>0);
+    requestAnimationFrame(anim);
+  })();
+}
+</script>
+
+</body>
+</html>
+
