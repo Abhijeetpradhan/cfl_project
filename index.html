@@ -553,32 +553,98 @@ let state = {
 ═══════════════════════════════════════════ */
 const STORE_KEY = 'cfl-state-v3';
 
+// async function saveState() {
+//   const json = JSON.stringify(state);
+//   // Try artifact persistent storage
+//   if (window.storage) {
+//     try { await window.storage.set(STORE_KEY, json); return; } catch(e){}
+//   }
+//   localStorage.setItem(STORE_KEY, json);
+// }
+
 async function saveState() {
-  const json = JSON.stringify(state);
-  // Try artifact persistent storage
-  if (window.storage) {
-    try { await window.storage.set(STORE_KEY, json); return; } catch(e){}
-  }
-  localStorage.setItem(STORE_KEY, json);
+
+    console.log("SAVE STATE CALLED");
+
+    const { error } = await window.supabaseClient
+        .from('seasons')
+        .update({
+            game_state: state,
+            status: state.phase
+        })
+        .eq('season_number', 1);
+
+    if(error){
+        console.error(error);
+    } else {
+        console.log("State saved to Supabase");
+    }
 }
+
+// async function loadState() {
+//   // Try artifact storage
+//   if (window.storage) {
+//     try {
+//       const r = await window.storage.get(STORE_KEY);
+//       if (r && r.value) return JSON.parse(r.value);
+//     } catch(e){}
+//   }
+//   const ls = localStorage.getItem(STORE_KEY);
+//   return ls ? JSON.parse(ls) : null;
+// }
+
 
 async function loadState() {
-  // Try artifact storage
-  if (window.storage) {
-    try {
-      const r = await window.storage.get(STORE_KEY);
-      if (r && r.value) return JSON.parse(r.value);
-    } catch(e){}
-  }
-  const ls = localStorage.getItem(STORE_KEY);
-  return ls ? JSON.parse(ls) : null;
+
+    console.log("LOAD STATE CALLED");
+
+    console.log("SUPABASE:", window.supabaseClient);
+
+    if (!window.supabaseClient) {
+        console.error("Supabase client not found");
+        return null;
+    }
+
+    const { data, error } = await window.supabaseClient
+        .from('seasons')
+        .select('game_state')
+        .eq('season_number', 1)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+    console.log("DB DATA:", data);
+    console.log("DB ERROR:", error);
+
+    if (error || !data || data.length === 0) {
+        return null;
+    }
+
+    return data[0].game_state;
 }
 
+// async function clearState() {
+//   if (window.storage) {
+//     try { await window.storage.delete(STORE_KEY); } catch(e){}
+//   }
+//   localStorage.removeItem(STORE_KEY);
+// }
+
 async function clearState() {
-  if (window.storage) {
-    try { await window.storage.delete(STORE_KEY); } catch(e){}
+  const supabase = window.supabaseClient;
+
+  const { error } = await supabase
+    .from('seasons')
+    .update({
+      game_state: null,
+      status: 'draft'
+    })
+    .eq('season_number', 1);
+
+  if (error) {
+    console.error(error);
   }
-  localStorage.removeItem(STORE_KEY);
+
+  console.log('State cleared from Supabase');
 }
 
 /* ═══════════════════════════════════════════
@@ -1352,11 +1418,15 @@ function showToast(msg, isError=false) {
    BOOT / RESTORE STATE
 ═══════════════════════════════════════════ */
 async function boot() {
+  console.log("BOOT START");
   let saved = null;
   try { saved = await loadState(); } catch(e){}
-  if (!saved || saved.phase==='setup') return;
+  if (!saved)
+    return;
 
-  state = saved;
+console.log("RESTORING STATE:", saved);
+
+state = saved;
 
   // Restore picks UI
   PLAYERS.forEach(pl => {
@@ -1422,7 +1492,11 @@ function renderChampionsHistory(){
 
 
 renderChampionsHistory();
-boot();
+// boot();
+window.addEventListener('load', async () => {
+    console.log("PAGE FULLY LOADED");
+    await boot();
+});
 </script>
 <div id="historyModal" class="modal">
 <div class="modal-card">
@@ -1617,6 +1691,38 @@ function showPlayerProfile(player){
 function closePlayerProfile(){
  document.getElementById("playerProfileModal").classList.remove("show");
 }
+
+</script>
+ <script type="module">
+
+import { createClient }
+from 'https://esm.sh/@supabase/supabase-js@2';
+
+// const supabase = createClient(
+//   'https://pdbxzwjmzoixddoueray.supabase.co',
+//   'sb_publishable_E_FkuXecI8DmQISgLjxBKA_M9y365Bt'
+// );
+
+
+window.supabaseClient = createClient(
+  'https://pdbxzwjmzoixddoueray.supabase.co',
+  'sb_publishable_E_FkuXecI8DmQISgLjxBKA_M9y365Bt'
+);
+
+const { data, error } =
+window.supabaseClient.from('seasons').select('*');
+
+// console.log(data);
+// console.log(error);
+
+window.testDB = async () => {
+    const { data, error } = await window.supabaseClient
+        .from('seasons')
+        .select('*');
+
+    console.log("ALL DB DATA:", data);
+    console.log("ALL DB ERROR:", error);
+};
 
 </script>
 </body>
