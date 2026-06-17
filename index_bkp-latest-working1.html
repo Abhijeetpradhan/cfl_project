@@ -376,134 +376,6 @@ drop-shadow(0 0 16px rgba(0,0,0,.9));
 .profile-header{text-align:center;margin-bottom:20px}
 .profile-name{font-size:28px;font-weight:800}
 .profile-link{margin-top:15px}
-
-
-/* ===== AUTO UI UPGRADE ===== */
-
-/* Sticky Nav */
-#nav-tabs{
-position:sticky !important;
-top:0 !important;
-z-index:999 !important;
-backdrop-filter:blur(12px);
-background:rgba(17,24,39,.95) !important;
-}
-
-/* Stats Row */
-.stats-row{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:12px;
-margin-bottom:20px;
-}
-
-.stats-card{
-background:var(--card);
-border:1px solid var(--border);
-border-radius:12px;
-padding:14px;
-text-align:center;
-}
-
-.stats-card .v{
-font-size:24px;
-font-weight:800;
-color:var(--gold);
-}
-
-.stats-card .l{
-font-size:11px;
-color:var(--muted);
-text-transform:uppercase;
-}
-
-/* Qualification badges */
-.qual-badge{
-padding:3px 8px;
-border-radius:999px;
-font-size:10px;
-font-weight:700;
-margin-left:8px;
-}
-
-.qual-q{
-background:rgba(16,185,129,.15);
-color:#10b981;
-}
-
-.qual-e{
-background:rgba(239,68,68,.15);
-color:#ef4444;
-}
-
-/* Hall of Champions */
-@media(max-width:768px){
-
-.hero{
-padding:25px 10px !important;
-}
-
-.hero h1{
-font-size:52px !important;
-}
-
-.card{
-overflow-x:auto;
-}
-
-table{
-min-width:650px;
-}
-
-#nav-tabs{
-overflow-x:auto;
-white-space:nowrap;
-}
-
-.nav-tab{
-min-width:130px;
-}
-
-.stats-row{
-grid-template-columns:repeat(2,1fr);
-}
-
-.profile-grid{
-grid-template-columns:repeat(2,1fr);
-}
-
-#knockout-content > div{
-grid-template-columns:1fr !important;
-}
-
-}
-
-/* Phones */
-@media(max-width:600px){
-
-.container{
-padding:12px !important;
-}
-
-.section-header h2{
-font-size:22px !important;
-}
-
-.team-cell{
-min-width:180px;
-}
-
-.tbl-wrap{
-overflow-x:auto;
-}
-
-.stats-row{
-grid-template-columns:1fr;
-}
-
-}
-
-
 </style>
 </head>
 <body>
@@ -1061,105 +933,6 @@ function computeStandings() {
   return rows;
 }
 
-
-
-function getQualifiedPlayers() {
-
-  renderStatsRow();
-  const rows = computeStandings();
-
-  const remaining = {};
-
-  PLAYERS.forEach(p => remaining[p] = 0);
-
-  state.groupMatches
-    .filter(m => !m.played)
-    .forEach(m => {
-      remaining[PLAYERS[m.homeIdx]]++;
-      remaining[PLAYERS[m.awayIdx]]++;
-    });
-
-  const maxPts = {};
-
-  rows.forEach(r => {
-    maxPts[r.player] = r.pts + remaining[r.player] * 3;
-  });
-
-  const qualified = [];
-
-  rows.forEach(r => {
-
-    let canBePassedBy = 0;
-
-    rows.forEach(other => {
-
-      if (other.player === r.player) return;
-
-      if (maxPts[other.player] > r.pts)
-        canBePassedBy++;
-
-    });
-
-    if (canBePassedBy < 4)
-      qualified.push(r.player);
-
-  });
-
-  return qualified;
-}
-
-
-
-
-function renderStatsRow(){
-
-const old=document.getElementById('stats-row');
-if(old) old.remove();
-
-if(!state.groupMatches) return;
-
-const played=state.groupMatches.filter(m=>m.played);
-
-let goals=0;
-
-played.forEach(m=>{
-goals+=Number(m.homeGoals||0);
-goals+=Number(m.awayGoals||0);
-});
-
-const rows=computeStandings();
-const leader=rows.length?rows[0].player:'-';
-
-const html=`
-<div class="stats-row" id="stats-row">
-
-<div class="stats-card">
-<div class="v">${played.length}/10</div>
-<div class="l">Matches</div>
-</div>
-
-<div class="stats-card">
-<div class="l">Goals</div>
-</div>
-
-<div class="stats-card">
-<div class="l">Avg Goals</div>
-</div>
-
-<div class="stats-card">
-<div class="l">Leader</div>
-</div>
-
-</div>
-`;
-
-document
-.getElementById('page-standings')
-.insertAdjacentHTML('afterbegin',html);
-}
-
-
-
 function renderStandings() {
   const rows = computeStandings();
   const allPlayed = state.groupMatches.every(m=>m.played);
@@ -1186,59 +959,7 @@ function renderStandings() {
       <td>${gd>0?'+':''}${gd}</td>
       <td><span class="pts-cell">${row.pts}</span></td>
       <td>${formHtml}</td>`;
-    
-const remaining = {};
-PLAYERS.forEach(p => remaining[p] = 0);
-
-state.groupMatches
-.filter(m => !m.played)
-.forEach(m => {
-    remaining[PLAYERS[m.homeIdx]]++;
-    remaining[PLAYERS[m.awayIdx]]++;
-});
-
-const maxPts = {};
-rows.forEach(r=>{
-    maxPts[r.player] = r.pts + (remaining[r.player] * 3);
-});
-
-let canBePassed = 0;
-
-rows.forEach(other=>{
-    if(other.player === row.player) return;
-    if(maxPts[other.player] > row.pts)
-        canBePassed++;
-});
-
-let guaranteedAbove = 0;
-
-rows.forEach(other=>{
-    if(other.player === row.player) return;
-    if(other.pts > maxPts[row.player])
-        guaranteedAbove++;
-});
-
-if(state.groupMatches.every(m=>m.played)){
-    if(rank<=4){
-        tr.querySelector('.t-country').innerHTML +=
-        ' <span class="qual-badge qual-q">Q</span>';
-    }else{
-        tr.querySelector('.t-country').innerHTML +=
-        ' <span class="qual-badge qual-e">E</span>';
-    }
-}
-else{
-    if(canBePassed < 4){
-        tr.querySelector('.t-country').innerHTML +=
-        ' <span class="qual-badge qual-q">Q</span>';
-    }
-    else if(guaranteedAbove >= 4){
-        tr.querySelector('.t-country').innerHTML +=
-        ' <span class="qual-badge qual-e">E</span>';
-    }
-}
-tbody.appendChild(tr);
-
+    tbody.appendChild(tr);
   });
 
   const status = document.getElementById('standings-status');
@@ -1254,78 +975,26 @@ tbody.appendChild(tr);
 /* ═══════════════════════════════════════════
    CHECK GROUP COMPLETE → GENERATE KNOCKOUTS
 ═══════════════════════════════════════════ */
-
 function checkGroupComplete() {
-
   const allPlayed = state.groupMatches.every(m=>m.played);
-
-  if (!allPlayed) {
-
-    state.semis = [
-      {
-        id:'sf1',
-        label:'Semi-Final 1',
-        homePlayer:'TBD',
-        awayPlayer:'TBD',
-        played:false
-      },
-      {
-        id:'sf2',
-        label:'Semi-Final 2',
-        homePlayer:'TBD',
-        awayPlayer:'TBD',
-        played:false
-      }
-    ];
-
-    state.final = null;
-
-    saveState();
-
-    return;
-  }
+  if (!allPlayed) return;
+  if (state.semis.length > 0) return; // already generated
 
   const rows = computeStandings();
   // Top 4 advance; 5th eliminated
   // SF1: 1st vs 4th, SF2: 2nd vs 3rd
   const top4 = rows.slice(0,4).map(r=>r.player);
   state.semis = [
-    {
-      id:'sf1',
-      label:'Semi-Final 1',
-      homePlayer:top4[0],
-      awayPlayer:top4[3],
-      homeGoals:null,
-      awayGoals:null,
-      penHome:null,
-      penAway:null,
-      hasPen:false,
-      played:false,
-      winner:null
-    },
-    {
-      id:'sf2',
-      label:'Semi-Final 2',
-      homePlayer:top4[1],
-      awayPlayer:top4[2],
-      homeGoals:null,
-      awayGoals:null,
-      penHome:null,
-      penAway:null,
-      hasPen:false,
-      played:false,
-      winner:null
-    }
+    { id:'sf1', label:'Semi-Final 1', homePlayer: top4[0], awayPlayer: top4[3], homeGoals:null, awayGoals:null, penHome:null, penAway:null, hasPen:false, played:false, winner:null },
+    { id:'sf2', label:'Semi-Final 2', homePlayer: top4[1], awayPlayer: top4[2], homeGoals:null, awayGoals:null, penHome:null, penAway:null, hasPen:false, played:false, winner:null },
   ];
   state.final = null;
   state.phase = 'knockout';
   saveState();
   unlockTabs(['knockout']);
-
-  document
-    .querySelector('.nav-tab[data-page="knockout"]')
-    ?.classList.add('done');
-
+  document.querySelector('.nav-tab[data-page="knockout"]').classList.add('done');
+  showToast('🏆 Top 4 advance! Knockouts unlocked!');
+  switchPage('knockout');
   renderKnockout();
 }
 
@@ -1586,24 +1255,18 @@ function submitKOMatch(id) {
     if(!state.championsHistory)
       state.championsHistory=[];
 
-    const idx = state.championsHistory.findIndex(
+    const exists = state.championsHistory.some(
       x => x.season === 2
     );
 
-    const record = {
-      season:2,
-      champion:match.winner,
-      country:pick.country,
-      flag:pick.flag
-    };
-
-    if(idx >= 0){
-      state.championsHistory[idx] = record;
-    }else{
-      state.championsHistory.push(record);
+    if(!exists){
+      state.championsHistory.push({
+        season:2,
+        champion:match.winner,
+        country:pick.country,
+        flag:pick.flag
+      });
     }
-
-    renderChampionsHistory();
     saveState();
     renderKnockout();
     setTimeout(() => showChampion(match.winner), 600);
@@ -1617,28 +1280,9 @@ function submitKOMatch(id) {
 function editKOMatch(id) {
   const match = getKOMatch(id);
   if (!match) return;
-
-  match.played = false;
-  match.homeGoals = null;
-  match.awayGoals = null;
-  match.penHome = null;
-  match.penAway = null;
-  match.hasPen = false;
-  match.winner = null;
-
-  // Only clear champion if FINAL is edited
-  if (id === 'final') {
-      state.champion = null;
-      state.phase = 'knockout';
-
-      if (Array.isArray(state.championsHistory)) {
-          state.championsHistory =
-              state.championsHistory.filter(r => r.season !== 2);
-      }
-
-      renderChampionsHistory();
-  }
-
+  match.played = false; match.homeGoals = null; match.awayGoals = null;
+  match.penHome = null; match.penAway = null; match.hasPen = false; match.winner = null;
+  if (id === 'final') { state.champion = null; state.phase = 'knockout'; }
   saveState();
   renderKnockout();
 }
@@ -1820,29 +1464,30 @@ state = saved;
 
 function renderChampionsHistory(){
 
-    if(!state.championsHistory)
-        state.championsHistory=[];
+  if(!state.championsHistory){
+      state.championsHistory=[
+        {
+          season:1,
+          champion:'Joker',
+          country:'France',
+          flag:'🇫🇷'
+        }
+      ];
+  }
 
-    const body=document.getElementById("champions-table");
-    if(!body) return;
+  const body=document.getElementById('champions-table');
+  if(!body) return;
 
-    body.innerHTML="";
+  body.innerHTML='';
 
-    state.championsHistory.forEach(r=>{
-
-        body.innerHTML += `
-        <tr>
-            <td>Season ${r.season}</td>
-
-            <td style="font-weight:700">
-                ${r.champion}
-            </td>
-
-            <td>
-                ${r.flag} ${r.country}
-            </td>
-        </tr>`;
-    });
+  state.championsHistory.forEach(r=>{
+      body.innerHTML += `
+      <tr>
+        <td>Season ${r.season}</td>
+        <td>${r.champion}</td>
+        <td>${r.flag} ${r.country}</td>
+      </tr>`;
+  });
 }
 
 
@@ -2021,14 +1666,19 @@ function showPlayerProfile(player){
       <div class="l">Goals Against</div>
    </div>
 
-   <div class="stat-box"><div class="v">${s.gf-s.ga}</div><div class="l">Goal Diff</div></div>
+   <div class="stat-box">
+      <div class="v">${s.gd}</div>
+      <div class="l">Goal Diff</div>
+   </div>
 
-   <div class="stat-box"><div class="v">${s.worldCups||0}</div><div class="l">World Cups</div></div>
+   <div class="stat-box">
+      <div class="v">${s.trophies}</div>
+      <div class="l">World Cups</div>
+   </div>
 
  </div>
 
- 
-<div class="text-center" style="margin-top:24px">
+ <div class="text-center">
     <button class="btn-sm green profile-link"
       onclick="closePlayerProfile();showPlayerHistory('${player}')">
       View Match History
