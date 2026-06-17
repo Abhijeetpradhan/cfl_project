@@ -1373,6 +1373,8 @@ function renderKnockout() {
 
   const sf1 = state.semis[0];
   const sf2 = state.semis[1];
+  const disabledAttr =
+    window.isAdmin ? '' : 'disabled';
 
   let finalHTML = `
     <div class="card" style="min-width:340px">
@@ -1503,9 +1505,14 @@ function buildKOMatch(match, isFinal) {
           </div>
         </div>
         ${penLine}
-        <div style="margin-top:10px;text-align:right">
-          <button class="btn-sm red" onclick="editKOMatch('${match.id}')">Edit Result</button>
-        </div>
+        ${window.isAdmin
+  ? `<div style="margin-top:10px;text-align:right">
+       <button class="btn-sm red"
+               onclick="editKOMatch('${match.id}')">
+         Edit Result
+       </button>
+     </div>`
+  : ''}
       </div>`;
   } else {
     const penSection = `
@@ -1526,9 +1533,9 @@ function buildKOMatch(match, isFinal) {
           </div>
           <div></div>
           <div class="score-box">
-            <input class="score-inp" type="number" min="0" max="99" id="koh-${match.id}" placeholder="0">
+            <input class="score-inp" type="number" min="0" max="99" id="koh-${match.id}" placeholder="0" ${window.isAdmin ? '' : 'disabled'}>
             <span class="score-dash">-</span>
-            <input class="score-inp" type="number" min="0" max="99" id="koa-${match.id}" placeholder="0">
+            <input class="score-inp" type="number" min="0" max="99" id="koa-${match.id}" placeholder="0" ${window.isAdmin ? '' : 'disabled'}>
           </div>
           <div></div>
           <div class="team-side right">
@@ -1542,7 +1549,12 @@ function buildKOMatch(match, isFinal) {
           If scores are level after 90 minutes, enter penalty shootout scores above.
           <span id="pen-trigger-${match.id}"></span>
         </div>
-        <button class="btn-sm green" style="margin-top:4px" onclick="submitKOMatch('${match.id}')">Save Result</button>
+        ${window.isAdmin
+  ? `<button class="btn-sm green" style="margin-top:4px"
+       onclick="submitKOMatch('${match.id}')">
+       Save Result
+     </button>`
+  : ''}
       </div>`;
 
     // Show pen row automatically when both scores are equal and non-null
