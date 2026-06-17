@@ -514,6 +514,15 @@ grid-template-columns:1fr;
     <div class="hero-eyebrow">Fantasy League · 2026</div>
     <h1>CFL <span>World Cup</span> Edition</h1>
     
+     <div style="margin-top:15px">
+    <button id="loginBtn" class="btn-sm">
+        Login
+    </button>
+
+    <button id="logoutBtn" class="btn-sm red" style="display:none">
+        Logout
+    </button>
+</div>
   </div>
 </div>
 
@@ -553,7 +562,7 @@ grid-template-columns:1fr;
 
 <!-- NAV TABS -->
   <div class="nav-tabs" id="nav-tabs">
-    <button class="nav-tab active" data-page="setup"  onclick="switchPage('setup')">⚙ Draft</button>
+    <button id="draftTab" class="nav-tab active" data-page="setup"  onclick="switchPage('setup')">⚙ Draft</button>
     <button class="nav-tab locked" data-page="fixtures" onclick="switchPage('fixtures')">📅 Fixtures</button>
     <button class="nav-tab locked" data-page="standings" onclick="switchPage('standings')">📊 Standings</button>
     <button class="nav-tab locked" data-page="knockout" onclick="switchPage('knockout')">🏆 Knockout</button>
@@ -566,7 +575,7 @@ grid-template-columns:1fr;
       <span class="badge" id="pick-counter">0 / 5 picked</span>
     </div>
     <div class="players-grid" id="players-div"></div>
-    <button class="btn-gold" onclick="startTournament()">⚽ Begin Group Stage</button>
+    <button id="startTournamentBtn" class="btn-gold" onclick="startTournament()">⚽ Begin Group Stage</button>
   </div>
 
   <!-- PAGE: FIXTURES -->
@@ -575,7 +584,7 @@ grid-template-columns:1fr;
       <h2>Group Stage Fixtures</h2>
       
 <span class="badge" id="fixtures-progress">0 / 10 played</span>
-<button class="btn-sm green"
+<button id="saveAllScoresBtn" class="btn-sm green"
         onclick="saveAllMatches()"
         style="margin-left:auto">
 💾 Save All Scores
@@ -584,7 +593,7 @@ grid-template-columns:1fr;
     </div>
     <div id="fixtures-list"></div>
     <div class="text-center mt-16">
-      <button class="btn-link" onclick="resetAll()">↩ Reset Tournament</button>
+      <button class="btn-link reset-btn" onclick="resetAll()">↩ Reset Tournament</button>
     </div>
   </div>
 
@@ -612,7 +621,7 @@ grid-template-columns:1fr;
       <span style="display:flex;align-items:start;gap:5px"><span style="display:inline-block;width:3px;height:14px;background:var(--red);border-radius:2px"></span> Eliminated</span>
     </div>
     <div class="text-center mt-16">
-      <button class="btn-link" onclick="resetAll()">↩ Reset Tournament</button>
+      <button class="reset-btn btn-link" onclick="resetAll()">↩ Reset Tournament</button>
     </div>
   </div>
 
@@ -624,7 +633,7 @@ grid-template-columns:1fr;
     </div>
     <div id="knockout-content"></div>
     <div class="text-center mt-16">
-      <button class="btn-link" onclick="resetAll()">↩ Reset Tournament</button>
+      <button class="reset-btn btn-link" onclick="resetAll()">↩ Reset Tournament</button>
     </div>
   </div>
 
@@ -802,6 +811,10 @@ PLAYERS.forEach((player, idx) => {
 });
 
 function pickCountry(player, country, flag, el) {
+  if (!window.isAdmin) {
+    alert("Admin access required");
+    return;
+}
   if (state.picks[player]) {
     const prevId = `cc_${player}_${state.picks[player].country.replace(/\s/g,'_')}`;
     document.getElementById(prevId)?.classList.remove('selected');
@@ -821,6 +834,10 @@ function pickCountry(player, country, flag, el) {
    START TOURNAMENT
 ═══════════════════════════════════════════ */
 function startTournament() {
+  if (!window.isAdmin) {
+    alert("Admin access required");
+    return;
+}
   if (Object.keys(state.picks).length !== PLAYERS.length) {
     showToast('⚠️ All players must pick a country!', true); return;
   }
@@ -895,6 +912,8 @@ function buildFixtureRow(match) {
   const row = document.createElement('div');
   row.className = `fixture-row ${match.played ? 'played' : 'pending'}`;
   row.id = `match-row-${match.id}`;
+  const disabledAttr =
+    window.isAdmin ? '' : 'disabled';
 
   if (match.played) {
     row.innerHTML = `
@@ -909,7 +928,11 @@ function buildFixtureRow(match) {
         <span class="flag">${aPick.flag}</span>
         <div><div class="name">${aName}</div><div class="sub">${aPick.country}</div></div>
       </div>
-      <button class="btn-sm red" onclick="editMatch(${match.id})">Edit</button>`;
+      ${window.isAdmin
+    ? `<button class="btn-sm red" onclick="editMatch(${match.id})">Edit</button>`
+    : ''}
+      `;
+
   } else {
     row.innerHTML = `
       <div class="team-side">
@@ -918,12 +941,12 @@ function buildFixtureRow(match) {
       </div>
       <div></div>
       <div class="score-box">
-        <select class="score-inp" id="h-${match.id}">
+        <select class="score-inp" id="h-${match.id}" ${disabledAttr}>
 <option value="">-</option>
 ${Array.from({length:11}, (_,i)=>`<option value="${i}">${i}</option>`).join("")}
 </select>
         <span class="score-dash">-</span>
-        <select class="score-inp" id="a-${match.id}">
+        <select class="score-inp" id="a-${match.id}" ${disabledAttr}> 
 <option value="">-</option>
 ${Array.from({length:11}, (_,i)=>`<option value="${i}">${i}</option>`).join("")}
 </select>
@@ -939,6 +962,10 @@ ${Array.from({length:11}, (_,i)=>`<option value="${i}">${i}</option>`).join("")}
 }
 
 function editMatch(id) {
+  if (!window.isAdmin) {
+    alert("Admin access required");
+    return;
+}
   const m = state.groupMatches.find(x=>x.id===id);
   m.played = false; m.homeGoals = null; m.awayGoals = null;
   saveState();
@@ -949,6 +976,10 @@ function editMatch(id) {
 
 
 function saveAllMatches() {
+  if (!window.isAdmin) {
+    alert("Admin access required");
+    return;
+}
 
   let updated = 0;
 
@@ -986,6 +1017,10 @@ function saveAllMatches() {
 
 
 function submitGroupMatch(id) {
+  if (!window.isAdmin) {
+    alert("Admin access required");
+    return;
+}
   const m = state.groupMatches.find(x=>x.id===id);
   const h = parseInt(document.getElementById(`h-${id}`).value);
   const a = parseInt(document.getElementById(`a-${id}`).value);
@@ -1546,6 +1581,10 @@ function checkShowPenRow(id) {
 }
 
 function submitKOMatch(id) {
+  if (!window.isAdmin) {
+    alert("Admin access required");
+    return;
+}
   const match = getKOMatch(id);
   if (!match) return;
   const h = parseInt(document.getElementById(`koh-${id}`)?.value);
@@ -1615,6 +1654,10 @@ function submitKOMatch(id) {
 }
 
 function editKOMatch(id) {
+  if (!window.isAdmin) {
+    alert("Admin access required");
+    return;
+}
   const match = getKOMatch(id);
   if (!match) return;
 
@@ -1737,6 +1780,10 @@ function stopFireworks() {
    RESET
 ═══════════════════════════════════════════ */
 async function resetAll() {
+  if (!window.isAdmin) {
+    alert("Admin access required");
+    return;
+}
   if (!confirm('Reset the entire tournament? All data will be lost.')) return;
   stopFireworks();
   document.getElementById('champion-overlay').classList.remove('show');
@@ -1775,6 +1822,78 @@ function showToast(msg, isError=false) {
 ═══════════════════════════════════════════ */
 async function boot() {
   console.log("BOOT START");
+  console.log("SUPABASE CLIENT:", window.supabaseClient);
+
+    const {
+      data: { session }
+    } = await window.supabaseClient.auth.getSession();
+
+    window.isAdmin =
+      session?.user?.email === "admin@cfl.com";
+
+    console.log("IS ADMIN:", window.isAdmin);
+
+    const startBtn = document.getElementById("startTournamentBtn");
+
+if (!window.isAdmin && startBtn) {
+    startBtn.style.display = "none";
+}
+
+const playersDiv = document.getElementById("players-div");
+
+if (!window.isAdmin && playersDiv) {
+    playersDiv.style.display = "none";
+}
+
+
+const saveAllScoresBtn =
+    document.getElementById("saveAllScoresBtn");
+
+if (!window.isAdmin && saveAllScoresBtn) {
+    saveAllScoresBtn.style.display = "none";
+}
+
+if (!window.isAdmin) {
+
+    document
+      .querySelectorAll('.reset-btn')
+      .forEach(btn => btn.style.display = 'none');
+
+}
+
+
+    
+
+    const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+
+if (window.isAdmin) {
+    loginBtn.style.display = "none";
+    logoutBtn.style.display = "inline-block";
+} else {
+    loginBtn.style.display = "inline-block";
+    logoutBtn.style.display = "none";
+}
+
+
+
+    const draftTab = document.getElementById("draftTab");
+
+if (!window.isAdmin && draftTab) {
+    draftTab.style.display = "none";
+}
+
+const setupPage = document.getElementById("page-setup");
+
+if (!window.isAdmin && setupPage) {
+    setupPage.classList.remove("active");
+}
+
+if (!window.isAdmin) {
+    switchPage('fixtures');
+}
+
+
   let saved = null;
   try { saved = await loadState(); } catch(e){}
   if (!saved)
@@ -1848,6 +1967,54 @@ function renderChampionsHistory(){
 
 renderChampionsHistory();
 // boot();
+
+document.getElementById("loginBtn").onclick = () => {
+
+    document
+      .getElementById("loginModal")
+      .classList.add("show");
+
+};
+
+document.getElementById("logoutBtn").onclick = async () => {
+
+    await window.supabaseClient.auth.signOut();
+
+    location.reload();
+};
+
+function closeLoginModal() {
+
+    document
+      .getElementById("loginModal")
+      .classList.remove("show");
+
+}
+
+async function loginAdmin() {
+
+    const email =
+      document.getElementById("loginEmail").value;
+
+    const password =
+      document.getElementById("loginPassword").value;
+
+    const { error } =
+      await window.supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+    if (error) {
+        showToast(error.message, true);
+        return;
+    }
+    showToast("Login successful");
+    closeLoginModal();
+
+    location.reload();
+}
+
 window.addEventListener('load', async () => {
     console.log("PAGE FULLY LOADED");
     await boot();
@@ -1925,6 +2092,50 @@ function closeHistory(){
 </div>
 <div class="modal-body" id="profileBody"></div>
 </div>
+</div>
+
+
+<div id="loginModal" class="modal">
+
+  <div class="modal-card" style="max-width:450px">
+
+    <div class="modal-head">
+      <h3>Admin Login</h3>
+
+      <button class="btn-sm red"
+              onclick="closeLoginModal()">
+        Close
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <label>Email</label>
+
+      <input
+        id="loginEmail"
+        type="email"
+        class="score-inp"
+        style="width:100%;margin-bottom:12px">
+
+      <label>Password</label>
+
+      <input
+        id="loginPassword"
+        type="password"
+        class="score-inp"
+        style="width:100%;margin-bottom:20px">
+
+      <button
+        class="btn-gold"
+        onclick="loginAdmin()">
+        Login
+      </button>
+
+    </div>
+
+  </div>
+
 </div>
 
 <script>
